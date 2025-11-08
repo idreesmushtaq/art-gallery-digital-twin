@@ -21,6 +21,7 @@ import {
   Cable as Cube,
   MessageCircle,
   X,
+  Users,
 } from "lucide-react"
 import {
   LineChart,
@@ -39,6 +40,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import ChatAssistant from "@/components/chat-assistant"
 import Building3D from "@/components/building-3d"
+import { CrowdDensityHeatmap } from "@/components/crowd-density-heatmap"
 
 export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
@@ -357,6 +359,8 @@ ${simulationResults ? `Temperature: ${simulationResults.predictedTemp.toFixed(1)
             forecastData={forecastData}
           />
         )
+      case "crowd-density":
+        return <CrowdDensityHeatmap />
       case "settings":
         return <SettingsView />
       default:
@@ -485,6 +489,12 @@ ${simulationResults ? `Temperature: ${simulationResults.predictedTemp.toFixed(1)
               onClick={() => setActiveTab("simulation")}
             />
             <NavItem
+              icon={<Users className="w-5 h-5" />}
+              label="Crowd Density"
+              active={activeTab === "crowd-density"}
+              onClick={() => setActiveTab("crowd-density")}
+            />
+            <NavItem
               icon={<Settings className="w-5 h-5" />}
               label="Settings"
               active={activeTab === "settings"}
@@ -589,7 +599,7 @@ ${simulationResults ? `Temperature: ${simulationResults.predictedTemp.toFixed(1)
 
       {/* Bottom Tab Navigation - Mobile Only (shown when sidebar hidden on small screens) */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-slate-950/95 backdrop-blur-xl border-t border-slate-800/50 z-40 safe-area-inset-bottom">
-        <div className="grid grid-cols-7 h-16">
+        <div className="grid grid-cols-8 h-16">
           <button
             onClick={() => setActiveTab("digital-twin")}
             className={`flex flex-col items-center justify-center gap-1 transition-all ${
@@ -655,6 +665,17 @@ ${simulationResults ? `Temperature: ${simulationResults.predictedTemp.toFixed(1)
           >
             <Sliders className="w-5 h-5" />
             <span className="text-[10px] font-medium">Sim</span>
+          </button>
+          <button
+            onClick={() => setActiveTab("crowd-density")}
+            className={`flex flex-col items-center justify-center gap-1 transition-all ${
+              activeTab === "crowd-density"
+                ? "text-blue-400 bg-blue-500/10"
+                : "text-slate-400 hover:text-slate-300 hover:bg-slate-800/50"
+            }`}
+          >
+            <Users className="w-5 h-5" />
+            <span className="text-[10px] font-medium">Crowd</span>
           </button>
           <button
             onClick={() => setActiveTab("settings")}
