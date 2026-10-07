@@ -19,7 +19,7 @@ export default function ChatAssistant({ onClose }: { onClose: () => void }) {
       id: "1",
       role: "assistant",
       content:
-        "👋 Welcome to the Art Gallery Digital Twin AI Assistant!\n\n🎯 I can help you with:\n\n• 🏢 3D building model navigation & visualization\n• 📊 Equipment health monitoring & predictive maintenance\n• ⚠️ Alert analysis & recommended actions\n• 🌡️ Environmental control optimization\n• 🔮 What-if scenarios & 48-hour forecasts\n• 🔧 Maintenance scheduling & troubleshooting\n• 📈 Energy efficiency recommendations\n\n⚡ Quick Start:\n- \"What's the status of critical equipment?\"\n- \"How do I fix the dehumidifier issue?\"\n- \"Run a temperature simulation\"\n- \"Show me upcoming maintenance tasks\"\n\nWhat would you like to know?",
+        "👋 Welcome to the Office Digital Twin AI Assistant!\n\n🎯 I can help you with:\n\n• 🏢 3D building model navigation & visualization\n• 📊 Equipment health monitoring & predictive maintenance\n• ⚠️ Alert analysis & recommended actions\n• 🌡️ Environmental control optimization\n• 🔮 What-if scenarios & 48-hour forecasts\n• 🔧 Maintenance scheduling & troubleshooting\n• 📈 Energy efficiency recommendations\n\n⚡ Quick Start:\n- \"What's the status of critical equipment?\"\n- \"How do I fix the dehumidifier issue?\"\n- \"Run a temperature simulation\"\n- \"Show me upcoming maintenance tasks\"\n\nWhat would you like to know?",
       timestamp: new Date(),
     },
   ])

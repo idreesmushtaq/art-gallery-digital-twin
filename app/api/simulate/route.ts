@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     }
 
     // AI-driven simulation system prompt
-    const systemPrompt = `You are an advanced Building Simulation Engine for an Art Gallery Digital Twin system. Your role is to generate accurate, realistic simulation results based on input parameters.
+    const systemPrompt = `You are an advanced Building Simulation Engine for an Office Digital Twin system. Your role is to generate accurate, realistic simulation results based on input parameters.
 
 SIMULATION EXPERTISE:
 - Environmental physics and thermodynamics
@@ -27,7 +27,7 @@ SIMULATION EXPERTISE:
 - Failure prediction and cascade effects
 
 CURRENT BUILDING BASELINE:
-- Gallery Size: 5,000 sq ft
+- Office Size: 5,000 sq ft
 - Ceiling Height: 15 ft
 - Insulation: R-30 walls, R-50 roof
 - HVAC Capacity: 10 tons cooling, 150,000 BTU heating
@@ -180,11 +180,11 @@ function generateFallbackSimulation(parameters: any) {
       airHandler: Math.min(100, 55 + (occupancy / 15)),
     },
     recommendations: [
-      predictedTemp > 22 ? "Consider pre-cooling the gallery" : "Maintain current HVAC settings",
+      predictedTemp > 22 ? "Consider pre-cooling the office" : "Maintain current HVAC settings",
       occupancy > 300 ? "Monitor CO₂ levels closely" : "Normal ventilation adequate",
     ],
     warnings: [
-      predictedTemp > 23 ? "Temperature may exceed safe range for artwork" : null,
+      predictedTemp > 23 ? "Temperature may exceed safe range for office equipment" : null,
       predictedEnergy > 4 ? "High energy consumption expected" : null,
     ].filter(Boolean),
     confidence: 85,

@@ -39,29 +39,51 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import ChatAssistant from "@/components/chat-assistant"
-import Building3D from "@/components/building-3d"
+import BIMViewer from "@/components/bim/bim-viewer"
 import { CrowdDensityHeatmap } from "@/components/crowd-density-heatmap"
+import { INITIAL_OFFICE_ALERTS } from "@/lib/bim/office-alerts"
+import { OFFICE_ASSETS } from "@/lib/bim/office-assets"
 
 export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
-  const [activeTab, setActiveTab] = useState("digital-twin")
-  const [selectedAsset, setSelectedAsset] = useState("hvac-chiller-1")
+  const [activeTab, setActiveTab] = useState("dashboard")
+  const [selectedAsset, setSelectedAsset] = useState("chiller-01")
   const [weatherTemp, setWeatherTemp] = useState(22)
   const [occupancy, setOccupancy] = useState(150)
   const [simulationResults, setSimulationResults] = useState(null)
-  const [lastUpdated, setLastUpdated] = useState(new Date())
+  const [currentTime, setCurrentTime] = useState<string>("")
   const [acknowledgedAlerts, setAcknowledgedAlerts] = useState(new Set())
   const [forecastData, setForecastData] = useState(null)
   const [vrMode, setVrMode] = useState(false)
   const [arMode, setArMode] = useState(false)
-  const [selectedEquipment, setSelectedEquipment] = useState("hvac-chiller-1")
+  const [selectedEquipment, setSelectedEquipment] = useState("chiller-01")
   const [chatOpen, setChatOpen] = useState(false)
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setLastUpdated(new Date())
-    }, 5000)
-    return () => clearInterval(interval)
+    const updateClock = () => {
+      setCurrentTime(
+        new Date().toLocaleTimeString(
+          "en-US",
+          {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: true,
+          }
+        )
+      )
+    }
+
+    updateClock()
+
+    const interval = window.setInterval(
+      updateClock,
+      1000
+    )
+
+    return () => {
+      window.clearInterval(interval)
+    }
   }, [])
 
   const handleSimulate = () => {
@@ -116,158 +138,113 @@ ${simulationResults ? `Temperature: ${simulationResults.predictedTemp.toFixed(1)
     { label: "Energy", value: "2.4 kW", unit: "Current", status: "warning", icon: "⚡" },
   ]
 
-  const assets = [
-    {
-      id: "hvac-chiller-1",
-      name: "HVAC Chiller 1",
-      health: 92,
-      status: "Healthy",
-      maintenance: "2024-10-15",
-      nextMaint: "2025-01-15",
-      location: "Main Floor",
-      model: "Carrier 30XA",
-      efficiency: 94,
-    },
-    {
-      id: "air-handler-2",
-      name: "Air Handler 2",
-      health: 78,
-      status: "Warning",
-      maintenance: "2024-09-20",
-      nextMaint: "2024-12-20",
-      location: "East Wing",
-      model: "Trane XR15",
-      efficiency: 87,
-    },
-    {
-      id: "dehumidifier-3",
-      name: "Dehumidifier 3",
-      health: 65,
-      status: "Critical",
-      maintenance: "2024-08-10",
-      nextMaint: "2024-11-10",
-      location: "Storage Room",
-      model: "Aprilaire 1875F",
-      efficiency: 72,
-    },
-    {
-      id: "lighting-system",
-      name: "Lighting System",
-      health: 88,
-      status: "Healthy",
-      maintenance: "2024-10-01",
-      nextMaint: "2025-01-01",
-      location: "Gallery Floor",
-      model: "Philips LED",
-      efficiency: 91,
-    },
-    {
-      id: "elevator-1",
-      name: "Elevator 1",
-      health: 95,
-      status: "Healthy",
-      maintenance: "2024-10-10",
-      nextMaint: "2025-01-10",
-      location: "Main Lobby",
-      model: "Otis Gen2",
-      efficiency: 96,
-    },
-    {
-      id: "elevator-2",
-      name: "Elevator 2",
-      health: 71,
-      status: "Warning",
-      maintenance: "2024-09-15",
-      nextMaint: "2024-12-15",
-      location: "East Lobby",
-      model: "Otis Gen2",
-      efficiency: 84,
-    },
-  ]
+  const assets = OFFICE_ASSETS.map((asset) => ({
+    id: asset.id,
+    name: asset.displayName,
+    health: asset.health,
+    status:
+      asset.status.charAt(0).toUpperCase() +
+      asset.status.slice(1),
+    maintenance: "Current",
+    nextMaint: "To be scheduled",
+    location: "Office",
+    model: asset.ifcName,
+    efficiency: asset.health,
+    globalId: asset.globalId,
+  }))
 
-  const alerts = [
-    {
-      id: 1,
-      asset: "Dehumidifier 3",
-      type: "Bearing Wear",
-      severity: "Critical",
-      failureTime: "2 days",
-      confidence: 94,
-      action: "Schedule immediate maintenance",
-    },
-    {
-      id: 2,
-      asset: "Air Handler 2",
-      type: "Filter Clogging",
-      severity: "Major",
-      failureTime: "5 days",
-      confidence: 87,
-      action: "Replace filter",
-    },
-    {
-      id: 3,
-      asset: "Elevator 2",
-      type: "Cable Tension",
-      severity: "Major",
-      failureTime: "7 days",
-      confidence: 82,
-      action: "Inspect cables",
-    },
-    {
-      id: 4,
-      asset: "HVAC Chiller 1",
-      type: "Refrigerant Low",
-      severity: "Minor",
-      failureTime: "14 days",
-      confidence: 76,
-      action: "Monitor levels",
-    },
-    {
-      id: 5,
-      asset: "Lighting System",
-      type: "LED Degradation",
-      severity: "Minor",
-      failureTime: "30 days",
-      confidence: 68,
-      action: "Plan replacement",
-    },
-  ]
+  const alerts = INITIAL_OFFICE_ALERTS.map(
+    (alert, index) => ({
+      id: alert.id,
+      asset:
+        OFFICE_ASSETS.find(
+          (asset) => asset.id === alert.assetId
+        )?.displayName ?? alert.assetId,
+      type: alert.title,
+      severity:
+        alert.severity.charAt(0).toUpperCase() +
+        alert.severity.slice(1),
+      failureTime: "Active",
+      confidence: 100 - index * 6,
+      action: alert.message,
+    })
+  )
+
+  const criticalGlobalIds = alerts
+    .filter(
+      (alert) =>
+        alert.severity === "Critical" &&
+        !acknowledgedAlerts.has(alert.id)
+    )
+    .map((alert) => {
+      const asset =
+        assets.find(
+          (asset) =>
+            asset.name === alert.asset
+        )
+
+      return asset?.globalId
+    })
+    .filter(
+      (globalId): globalId is string =>
+        Boolean(globalId)
+    )
 
   const rulData = [
-    { day: "Day 1", hvac: 28, airHandler: 22, dehumidifier: 15, elevator: 32 },
-    { day: "Day 5", hvac: 26, airHandler: 20, dehumidifier: 12, elevator: 28 },
-    { day: "Day 10", hvac: 24, airHandler: 18, dehumidifier: 10, elevator: 24 },
-    { day: "Day 15", hvac: 22, airHandler: 16, dehumidifier: 8, elevator: 20 },
-    { day: "Day 20", hvac: 20, airHandler: 14, dehumidifier: 6, elevator: 16 },
-    { day: "Day 25", hvac: 18, airHandler: 12, dehumidifier: 4, elevator: 12 },
-    { day: "Day 30", hvac: 16, airHandler: 10, dehumidifier: 2, elevator: 8 },
+    { day: "Day 1", chiller: 28, panelboard: 42, rooftopFan: 12 },
+    { day: "Day 5", chiller: 26, panelboard: 40, rooftopFan: 10 },
+    { day: "Day 10", chiller: 24, panelboard: 38, rooftopFan: 8 },
+    { day: "Day 15", chiller: 22, panelboard: 36, rooftopFan: 6 },
+    { day: "Day 20", chiller: 20, panelboard: 34, rooftopFan: 4 },
+    { day: "Day 25", chiller: 18, panelboard: 32, rooftopFan: 2 },
+    { day: "Day 30", chiller: 16, panelboard: 30, rooftopFan: 1 },
   ]
 
   const maintenanceSchedule = [
-    { asset: "HVAC Chiller 1", date: "2025-01-15", type: "Preventive", status: "Scheduled" },
-    { asset: "Air Handler 2", date: "2024-12-20", type: "Corrective", status: "Urgent" },
-    { asset: "Dehumidifier 3", date: "2024-11-10", type: "Corrective", status: "Critical" },
-    { asset: "Elevator 2", date: "2024-12-15", type: "Preventive", status: "Scheduled" },
-    { asset: "Lighting System", date: "2025-01-01", type: "Preventive", status: "Scheduled" },
+    {
+      asset: "Air-Cooled Screw Chiller",
+      date: "2026-10-08",
+      type: "Inspection",
+      status: "Scheduled",
+    },
+    {
+      asset: "Lighting Panelboard F1",
+      date: "2026-10-15",
+      type: "Preventive",
+      status: "Scheduled",
+    },
+    {
+      asset: "Rooftop Centrifugal Fan",
+      date: "2026-10-05",
+      type: "Corrective",
+      status: "Critical",
+    },
   ]
 
   const analyticsData = [
-    { name: "HVAC", value: 35, fill: "#10b981" },
-    { name: "Elevators", value: 28, fill: "#3b82f6" },
-    { name: "Lighting", value: 22, fill: "#f59e0b" },
-    { name: "Other", value: 15, fill: "#8b5cf6" },
+    {
+      name: "HVAC",
+      value: 67,
+      fill: "#10b981",
+    },
+    {
+      name: "Electrical",
+      value: 33,
+      fill: "#3b82f6",
+    },
   ]
 
   const getSeverityColor = (severity) => {
     switch (severity) {
       case "Critical":
         return "bg-red-500/20 text-red-400 border-red-500/30"
+      case "Warning":
       case "Major":
         return "bg-amber-500/20 text-amber-400 border-amber-500/30"
       case "Minor":
         return "bg-blue-500/20 text-blue-400 border-blue-500/30"
       default:
-        return "bg-gray-500/20 text-gray-400"
+        return "bg-gray-500/20 text-gray-400 border-gray-500/30"
     }
   }
 
@@ -297,6 +274,9 @@ ${simulationResults ? `Temperature: ${simulationResults.predictedTemp.toFixed(1)
           <DigitalTwinView
             assets={assets}
             alerts={alerts}
+            criticalGlobalIds={
+              criticalGlobalIds
+            }
             selectedEquipment={selectedEquipment}
             setSelectedEquipment={setSelectedEquipment}
             weatherTemp={weatherTemp}
@@ -312,24 +292,13 @@ ${simulationResults ? `Temperature: ${simulationResults.predictedTemp.toFixed(1)
         )
       case "dashboard":
         return (
-          <DashboardView
-            metrics={metrics}
+          <OfficeDashboardView
             assets={assets}
             alerts={alerts}
-            rulData={rulData}
-            selectedAsset={selectedAsset}
-            setSelectedAsset={setSelectedAsset}
-            weatherTemp={weatherTemp}
-            setWeatherTemp={setWeatherTemp}
-            occupancy={occupancy}
-            setOccupancy={setOccupancy}
-            simulationResults={simulationResults}
-            handleSimulate={handleSimulate}
-            getSeverityColor={getSeverityColor}
-            getHealthColor={getHealthColor}
-            getStatusBg={getStatusBg}
-            acknowledgedAlerts={acknowledgedAlerts}
-            handleAcknowledgeAlert={handleAcknowledgeAlert}
+            onSelectAsset={(assetId) => {
+              setSelectedEquipment(assetId)
+              setActiveTab("digital-twin")
+            }}
           />
         )
       case "assets":
@@ -427,14 +396,14 @@ ${simulationResults ? `Temperature: ${simulationResults.predictedTemp.toFixed(1)
               </div>
 
               <h1 className="text-xl font-bold text-white">
-                <span className="hidden sm:inline">Art Gallery </span>Digital Twin
+                OFFICE DIGITAL TWIN
               </h1>
             </div>
           </div>
           <div className="flex items-center gap-4">
             <div className="hidden sm:flex items-center gap-2 text-xs text-slate-400">
               <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              Last updated: {lastUpdated.toLocaleTimeString()}
+              Last updated: {currentTime}
             </div>
             <button className="p-2 hover:bg-slate-800 rounded-lg transition-colors">
               <Bell className="w-5 h-5 text-slate-300" />
@@ -708,6 +677,7 @@ ${simulationResults ? `Temperature: ${simulationResults.predictedTemp.toFixed(1)
 function DigitalTwinView({
   assets,
   alerts,
+  criticalGlobalIds,
   selectedEquipment,
   setSelectedEquipment,
   weatherTemp,
@@ -759,8 +729,15 @@ function DigitalTwinView({
             </CardHeader>
             <CardContent>
               <div className="w-full h-96 rounded-lg border border-slate-700/30 overflow-hidden">
-                {/* 3D Building Visualization - Now showing actual GLB model */}
-                <Building3D />
+                {/* 3D BIM Building Visualization - IFC fragments */}
+                <BIMViewer
+                  focusGlobalId={
+                    selectedAsset?.globalId
+                  }
+                  criticalGlobalIds={
+                    criticalGlobalIds
+                  }
+                />
               </div>
             </CardContent>
           </Card>
@@ -908,7 +885,7 @@ function DigitalTwinView({
                   <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/30">
                     <p className="text-xs font-medium text-blue-300 mb-1">📊 Trend Analysis</p>
                     <p className="text-xs text-slate-300">
-                      Conditions stable within optimal ranges for artwork preservation.
+                      Office environmental conditions are stable and within the configured operating range.
                     </p>
                   </div>
                   <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/30">
@@ -942,11 +919,6 @@ function DigitalTwinView({
                   <span className="text-sm text-slate-300">Lighting</span>
                   <Badge className="bg-green-500/20 text-green-400 text-xs">Optimal</Badge>
                 </div>
-                <div className="flex items-center justify-between p-3 rounded-lg bg-slate-800/30 border border-slate-700/30">
-                  <span className="text-sm text-slate-300">Dehumidifier</span>
-                  <Badge className="bg-red-500/20 text-red-400 text-xs">Critical</Badge>
-                </div>
-
                 {/* Additional System Info */}
                 <div className="mt-4 p-3 rounded-lg bg-slate-800/30 border border-slate-700/30">
                   <p className="text-xs text-slate-400 mb-2">Overall Health</p>
@@ -958,10 +930,6 @@ function DigitalTwinView({
                   </div>
                 </div>
 
-                <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/30">
-                  <p className="text-xs font-medium text-blue-300 mb-1">📅 Next Maintenance</p>
-                  <p className="text-xs text-slate-300">Dehumidifier 3 - Immediate action required</p>
-                </div>
               </CardContent>
             </Card>
           </div>
@@ -1097,6 +1065,137 @@ function DigitalTwinView({
           )}
         </CardContent>
       </Card>
+    </div>
+  )
+}
+
+interface OfficeDashboardAsset {
+  id: string
+  name: string
+  health: number
+}
+
+interface OfficeDashboardAlert {
+  id: string
+  severity: string
+  type: string
+}
+
+function OfficeDashboardView({
+  assets,
+  alerts,
+  onSelectAsset,
+}: {
+  assets: OfficeDashboardAsset[]
+  alerts: OfficeDashboardAlert[]
+  onSelectAsset: (assetId: string) => void
+}) {
+  const orderedAlerts = [...alerts].sort((a, b) =>
+    a.severity === "Critical" ? -1 : b.severity === "Critical" ? 1 : 0
+  )
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-white">
+          OFFICE DIGITAL TWIN
+        </h2>
+        <p className="mt-1 text-slate-400">
+          Building equipment health and active maintenance alerts
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <Card className="border-slate-800/50 bg-slate-900/50 backdrop-blur-xl">
+          <CardContent className="p-5">
+            <p className="text-sm text-slate-400">Asset Health</p>
+            <p className="mt-2 text-3xl font-bold text-white">3</p>
+            <p className="mt-1 text-xs text-slate-500">Tracked Assets</p>
+          </CardContent>
+        </Card>
+        <Card className="border-slate-800/50 bg-slate-900/50 backdrop-blur-xl">
+          <CardContent className="p-5">
+            <p className="text-sm text-slate-400">Active Alerts</p>
+            <p className="mt-2 text-3xl font-bold text-amber-400">2</p>
+            <p className="mt-1 text-xs text-slate-500">Requires attention</p>
+          </CardContent>
+        </Card>
+        <Card className="border-slate-800/50 bg-slate-900/50 backdrop-blur-xl">
+          <CardContent className="p-5">
+            <p className="text-sm text-slate-400">Critical Alert</p>
+            <p className="mt-2 text-3xl font-bold text-red-400">1</p>
+            <p className="mt-1 text-xs text-slate-500">Immediate attention</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <Card className="border-slate-800/50 bg-slate-900/50 backdrop-blur-xl">
+          <CardHeader>
+            <CardTitle className="text-white">Equipment</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            {assets.map((asset) => (
+              <button
+                key={asset.id}
+                type="button"
+                onClick={() => onSelectAsset(asset.id)}
+                className="block w-full text-left"
+              >
+                <div className="mb-2 flex items-center justify-between gap-4">
+                  <span className="text-sm text-slate-200">{asset.name}</span>
+                  <span className={`text-sm font-semibold ${
+                    asset.health >= 85
+                      ? "text-emerald-400"
+                      : asset.health >= 70
+                        ? "text-amber-400"
+                        : "text-red-400"
+                  }`}>
+                    {asset.health}%
+                  </span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-slate-800">
+                  <div
+                    className={`h-full ${
+                      asset.health >= 85
+                        ? "bg-emerald-400"
+                        : asset.health >= 70
+                          ? "bg-amber-400"
+                          : "bg-red-400"
+                    }`}
+                    style={{ width: `${asset.health}%` }}
+                  />
+                </div>
+              </button>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card className="border-slate-800/50 bg-slate-900/50 backdrop-blur-xl">
+          <CardHeader>
+            <CardTitle className="text-white">Active Alerts</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {orderedAlerts.map((alert) => (
+              <div
+                key={alert.id}
+                className="flex items-center gap-3 rounded-md border border-slate-800 bg-slate-950/40 p-3"
+              >
+                <span
+                  className={`text-[11px] font-bold ${
+                    alert.severity === "Critical"
+                      ? "text-red-400"
+                      : "text-amber-400"
+                  }`}
+                >
+                  {alert.severity.toUpperCase()}
+                </span>
+                <span className="text-sm text-slate-200">{alert.type}</span>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }
@@ -1265,10 +1364,9 @@ function DashboardView({
                     border: "1px solid rgba(148, 163, 184, 0.2)",
                   }}
                 />
-                <Line type="monotone" dataKey="hvac" stroke="#10b981" strokeWidth={2} dot={false} />
-                <Line type="monotone" dataKey="airHandler" stroke="#f59e0b" strokeWidth={2} dot={false} />
-                <Line type="monotone" dataKey="dehumidifier" stroke="#ef4444" strokeWidth={2} dot={false} />
-                <Line type="monotone" dataKey="elevator" stroke="#3b82f6" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="chiller" stroke="#10b981" strokeWidth={2} dot={false} name="Chiller" />
+                <Line type="monotone" dataKey="panelboard" stroke="#3b82f6" strokeWidth={2} dot={false} name="Panelboard" />
+                <Line type="monotone" dataKey="rooftopFan" stroke="#ef4444" strokeWidth={2} dot={false} name="Rooftop Fan" />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
@@ -1312,7 +1410,7 @@ function DashboardView({
             {simulationResults && (
               <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700/30 space-y-2">
                 <div>
-                  <p className="text-xs text-slate-400">Predicted Gallery Temp</p>
+                  <p className="text-xs text-slate-400">Predicted Office Temp</p>
                   <p className="text-lg font-bold text-white">{simulationResults.predictedTemp.toFixed(1)}°C</p>
                 </div>
                 <div>
@@ -1496,10 +1594,9 @@ function AnalyticsView({ rulData, analyticsData, maintenanceSchedule }) {
                     border: "1px solid rgba(148, 163, 184, 0.2)",
                   }}
                 />
-                <Line type="monotone" dataKey="hvac" stroke="#10b981" strokeWidth={2} name="HVAC" />
-                <Line type="monotone" dataKey="airHandler" stroke="#f59e0b" strokeWidth={2} name="Air Handler" />
-                <Line type="monotone" dataKey="dehumidifier" stroke="#ef4444" strokeWidth={2} name="Dehumidifier" />
-                <Line type="monotone" dataKey="elevator" stroke="#3b82f6" strokeWidth={2} name="Elevator" />
+                <Line type="monotone" dataKey="chiller" stroke="#10b981" strokeWidth={2} name="Chiller" />
+                <Line type="monotone" dataKey="panelboard" stroke="#3b82f6" strokeWidth={2} name="Panelboard" />
+                <Line type="monotone" dataKey="rooftopFan" stroke="#ef4444" strokeWidth={2} name="Rooftop Fan" />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
@@ -1724,7 +1821,7 @@ function SimulationView({
 
             <div>
               <label className="text-sm text-slate-300 mb-3 block flex justify-between">
-                <span>Gallery Occupancy</span>
+                <span>Office Occupancy</span>
                 <span className="text-white font-medium">{occupancy} people</span>
               </label>
               <input

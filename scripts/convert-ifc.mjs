@@ -1,0 +1,230 @@
+import fs from "node:fs/promises"
+import path from "node:path"
+import { fileURLToPath } from "node:url"
+
+import { IfcImporter } from "@thatopen/fragments"
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+
+const ROOT = path.resolve(__dirname, "..")
+
+const IFC_DIRECTORY = path.join(ROOT, "models", "ifc")
+
+const OUTPUT_DIRECTORY = path.join(
+  ROOT,
+  "public",
+  "models",
+  "fragments"
+)
+
+const MODELS = [
+  {
+    discipline: "architecture",
+    input: "architecture.ifc",
+    output: "architecture.frag",
+  },
+  {
+    discipline: "structural",
+    input: "structural.ifc",
+    output: "structural.frag",
+  },
+  {
+    discipline: "hvac",
+    input: "hvac.ifc",
+    output: "hvac.frag",
+  },
+  {
+    discipline: "electrical",
+    input: "electrical.ifc",
+    output: "electrical.frag",
+  },
+]
+
+async function fileExists(filePath) {
+  try {
+    await fs.access(filePath)
+    return true
+  } catch {
+    return false
+  }
+}
+
+async function convertModel(model) {
+  const inputPath = path.join(
+    IFC_DIRECTORY,
+    model.input
+  )
+
+  const outputPath = path.join(
+    OUTPUT_DIRECTORY,
+    model.output
+  )
+
+  console.log(`\n[${model.discipline}]`)
+
+  if (!(await fileExists(inputPath))) {
+    console.log(`  SKIPPED`)
+    console.log(`  Missing: ${inputPath}`)
+    return {
+      discipline: model.discipline,
+      status: "missing",
+    }
+  }
+
+  console.log(`  Reading ${model.input}...`)
+
+  const file = await fs.readFile(inputPath)
+
+
+  /*
+   * Keep useful BIM information available
+   * in the generated fragments.
+   *
+   * We need this later for:
+   *
+   * - GlobalId
+   * - IFC class
+   * - properties
+   * - IfcBuildingStorey
+   * - IfcSpace
+   * - asset relationships
+   */
+
+  const importer = new IfcImporter()
+
+importer.wasm = {
+  path: path.join(ROOT, "node_modules", "web-ifc") + path.sep,
+  absolute: true,
+}
+
+// Preserve IFC metadata required by the Office Digital Twin.
+importer.includeUniqueAttributes = true
+importer.includeRelationNames = true
+importer.replaceStoreyElevation = true
+
+// Required for storeys, spaces, GlobalIds, property sets,
+// spatial containment and equipment relationships.
+importer.addAllAttributes()
+importer.addAllRelations()
+
+  console.log(`  Converting...`)
+
+  const fragments = await importer.process({
+    bytes: new Uint8Array(file),
+    raw: false,
+    readFromCallback: false,
+  })
+
+  await fs.writeFile(
+    outputPath,
+    fragments
+  )
+
+  const inputStats =
+    await fs.stat(inputPath)
+
+  const outputStats =
+    await fs.stat(outputPath)
+
+  console.log(`  SUCCESS`)
+  console.log(
+    `  IFC:  ${formatBytes(inputStats.size)}`
+  )
+  console.log(
+    `  FRAG: ${formatBytes(outputStats.size)}`
+  )
+
+  return {
+    discipline: model.discipline,
+    status: "converted",
+  }
+}
+
+function formatBytes(bytes) {
+  if (bytes === 0) return "0 B"
+
+  const units = [
+    "B",
+    "KB",
+    "MB",
+    "GB",
+  ]
+
+  const index = Math.floor(
+    Math.log(bytes) / Math.log(1024)
+  )
+
+  return `${(
+    bytes / Math.pow(1024, index)
+  ).toFixed(2)} ${units[index]}`
+}
+
+async function main() {
+  console.log(
+    "======================================"
+  )
+  console.log(
+    " NBU Office BIM Fragment Converter"
+  )
+  console.log(
+    "======================================"
+  )
+
+  await fs.mkdir(
+    OUTPUT_DIRECTORY,
+    { recursive: true }
+  )
+
+  const results = []
+
+  for (const model of MODELS) {
+    try {
+      results.push(
+        await convertModel(model)
+      )
+    } catch (error) {
+      console.error(
+        `  FAILED:`,
+        error
+      )
+
+      results.push({
+        discipline: model.discipline,
+        status: "failed",
+      })
+    }
+  }
+
+  console.log(
+    "\n======================================"
+  )
+  console.log(" Conversion Summary")
+  console.log(
+    "======================================"
+  )
+
+  for (const result of results) {
+    console.log(
+      `${result.discipline.padEnd(15)} ${result.status}`
+    )
+  }
+
+  const failed = results.some(
+    (result) =>
+      result.status === "failed"
+  )
+
+  if (failed) {
+    process.exitCode = 1
+  }
+}
+
+main().catch((error) => {
+  console.error(
+    "\nFatal conversion error:",
+    error
+  )
+
+  process.exit(1)
+})

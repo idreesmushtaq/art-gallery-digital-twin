@@ -68,4 +68,4 @@ function BuildingModel() {
 }
 
 // Preload the model for better performance
-useGLTF.preload("https://yvt4zt8otzn0p90m.public.blob.vercel-storage.com/vr_art_gallery.glb")
+
